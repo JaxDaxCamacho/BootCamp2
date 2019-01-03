@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+	<head>
+
+		<meta charset="UTF-8">
+		<meta name="description" content="Meta tags">
+		<meta name="keywords" content="acin,bootcamp;ECMAscript">
+		<meta http-equiv="X-UA-COMPATIBLE" content="IE=edge">
+		<meta name="author" content="David Camacho">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <style>
+                /*define o padding e margem, e em baixo a cor de fundo e o display do canvas*/
+            * { padding: 0; margin: 4em; }
+            canvas { background-image: url("img/sea.jpg"); display: block; margin: 0 auto; }
+            
+            #player1{
+                float:left;
+                }
+            #player2{
+                float:right;
+                }
+            
+        </style>
+    
+		<title>Guia Pratico 12-BatalhaNaval</title>
+	</head>
+    <body>
+        <!-- Os score displays -->
+            <h2 id="player1">80</h2><h2 id="player2">80</h2>
+            <!-- aqui é colocado o tamanho do cavas e o id do mesmo -->
+           <canvas id="myCanvas" width="420" height="420" ></canvas>
+        <!-- input para as jogadas -->
+        <br><div id="painel_tiro">
+           <label>Coluna de tiro </label> <input id="col" type="number">
+           <label>Linha de tiro </label> <input id="row" type="number">
+           <input type="button" value="Disparar" onclick="disparar()">
+        </div>
+        <script>
+            
+            
+            //aqui vamos buscar o ID Cavas e guardamos numa variavel
+            var canvas = document.getElementById("myCanvas");
+            var ctx = canvas.getContext("2d");
+            // jogadores e as suas pontuações, quando estas atingem 0 acaba o jogo
+            var jog1=80;
+            var jog2=80;
+            // esta variavel distingue o turno, começa sempre com o jogador 1
+            var turno=1;
+            //variaveis com numero de celulas na matriz
+            var Cel = []; //posições das celulas do jogador 1
+            var Cel2 = []; //poisçoes das celulas do jogador 2
+            var CelRowCount=4;
+            var CelColCount=4;
+            //variaveis com as caracteristicas das celulas
+			var CelWidth=100;
+            var CelHeight=100;
+            //margens das celulas po canvas
+			var CelMargTopo=7;
+			var CelMargEsquerda =7;
+            /*numero de barcos existentes e colocados do jog1*/
+            var barcos =3;
+            var bcolocados=0;
+            /*numero de barcos existentes e colocados do jog2*/
+            var barcos2 =3;
+            var bcolocados2=0;
+
+            /* crio uma matriz de celulas dentro do Cel com colunas e rows, todas e cada uma com
+            3 variaveis, posição na linha, posição na coluna e se está vazia. desta forma consigo 
+            simular a posição dos barcos ao simplesmente alterar essa variavel. Volto a fazer o mesmo para 
+            o array Cel2 que vai conter exactamente as mesmas informações mas em relação as celulas dos jogador2*/
+            function popular(){
+            for(var c=0; c<CelColCount;c++){
+				Cel[c]= [];
+				for(var r=0; r<CelRowCount; r++){
+	                 Cel[c][r]={x:0, y:0, empty:1};
+				}
+            }
+            for(var c=0; c<CelColCount;c++){
+				Cel2[c]= [];
+				for(var r=0; r<CelRowCount; r++){
+	                 Cel2[c][r]={x:0, y:0, empty:1};
+				}
+        }
+    }
+
+    function limpar(){
+            for(var c=0; c<CelColCount;c++){
+				for(var r=0; r<CelRowCount; r++){
+                    if(Cel[c][r].empty!=2)
+	                 Cel[c][r]={x:0, y:0, empty:1};
+                    else Cel[c][r]={x:0, y:0, empty:2};
+				}
+            }
+    }
+    function limpar2(){
+            for(var c=0; c<CelColCount;c++){
+				for(var r=0; r<CelRowCount; r++){
+                    if(Cel2[c][r].empty!=2){
+	                 Cel2[c][r]={x:0, y:0, empty:1};}
+                     else {Cel2[c][r]={x:0, y:0, empty:2};}
+				}
+        }
+    }
+            //esta minifunção devolve numeros aleatórios. Utilizo o return que supostamente funciona melhor com Math.Random para impedir o repetir de numeros random
+            function getRandom(){
+                return Math.floor((Math.random() * 4));
+            }
+
+            /*esta função vai buscar o numero de barcos que cada jogador tem, 3 de inicio para cada um, utilizando um
+            loop vai tentado coloca-los de forma aleatoria em cada um dos arrays Cel e Cel2. Para impedir que existam
+            barcos na mesma posição é verificado se a posição escolhida esta vazia antes de estes serem colocados,
+            isto é feito atraves de a variavel referida anteriormente, que existem em cada uma das celulas. Esta função foi feita 
+            desta forma pois inicialmente pensei que tinha que alterar a posição dos barcos após cada tiro. por outro lado a função ficou
+            mais modular graças a isso*/
+            function colocaBarcos(){
+                while(barcos>bcolocados){
+                    var CelX=getRandom();
+                    var CelY=getRandom();
+                    if(Cel[CelX][CelY].empty!=0){
+                        Cel[CelX][CelY].empty=0;
+                        bcolocados++;
+                    }
+                    else{
+                    CelX=getRandom();
+                    CelY=getRandom();
+                    }
+                }
+                
+                while(barcos2>bcolocados2){
+                    var CelX=getRandom();
+                    var CelY=getRandom();
+                    if(Cel2[CelX][CelY].empty!=0){
+                        Cel2[CelX][CelY].empty=0;
+                        bcolocados2++;
+                    }
+                    else{
+                    CelX=getRandom();
+                    CelY=getRandom();
+                    }
+                }
+                }
+
+
+                /*esta função utiliza o canvas e o array Cel para desenhar cada uma das celulas do tabuleiro do jogador 1, os espaços vazios
+                são vermelhos e os barcos são verdes, existem 2 pixeis de separação entre eles(padding)*/
+            function tabuleiro(){
+                for(var c=0; c<CelColCount;c++){
+                    for(var r=0; r<CelRowCount;r++){
+                        var CelX = (c*(CelWidth+2)+CelMargEsquerda);
+                        var CelY = (r*(CelHeight+2)+CelMargTopo);
+                        Cel[c][r].x =CelX;
+                        Cel[c][r].y =CelY;
+                        ctx.beginPath();
+                        ctx.rect(CelX,CelY,CelWidth,CelHeight);
+                        if(Cel[c][r].empty<1){
+                            ctx.fillStyle="rgba(100,100,250,0.5)";
+                            desenhabarco(CelX,CelY,CelWidth,CelHeight);
+                            }
+                            else if(Cel[c][r].empty>1){
+                            ctx.fillStyle="rgba(100,100,100,0.2)";
+                            desenhabomba(CelX,CelY,CelWidth,CelHeight);
+                        }
+                        else {ctx.fillStyle = "rgba(170,170,250,0.6)";};
+                        ctx.fill();
+                        ctx.closePath();
+                    }
+                }
+            }
+            
+            /*isto é chamado durante o desenho dos tabuleiros, isto apenas desenha os barcos 
+            com as coordenadas que recebe, neste caso das celulas não vazias. Na função tabuleiro 
+            tambem são utilizadas cores de prenchimento por detras desta imagem para identificar o
+            jogador ao qual os barcos pertencem. Azul jogador 1 Vermelho jogador 2*/
+            function desenhabarco(celx,cely,width,height){
+                    var iboat = new Image();
+                    iboat.addEventListener('load',function(){
+                    ctx.drawImage(iboat,celx,cely,width-10,height-10);
+                    },false);
+                    iboat.src = 'img/boat.png';
+                }
+
+
+            // função chamada quando um tiro não acerta num barco para ter uma representação visual do mesmo
+            function desenhabomba(celx,cely,width,height){
+                    var iblast = new Image();
+                    iblast.addEventListener('load',function(){
+                    ctx.drawImage(iblast,celx,cely,width,height);
+                    },false);
+                    iblast.src = 'img/blast.png';
+                }
+            
+
+
+            /*esta função faz exactamente o mesmo mas para o tabuleiro do jogador2.*/
+            function tabuleiro2(){
+                for(var c=0; c<CelColCount;c++){
+                    for(var r=0; r<CelRowCount;r++){
+                        var CelX = (c*(CelWidth+2)+CelMargEsquerda);
+                        var CelY = (r*(CelHeight+2)+CelMargTopo);
+                        Cel2[c][r].x =CelX;
+                        Cel2[c][r].y =CelY;
+                        ctx.beginPath();
+                        ctx.rect(CelX,CelY,CelWidth,CelHeight);
+                        if(Cel2[c][r].empty<1){
+                            ctx.fillStyle="rgba(250,100,100,0.5)";
+                            desenhabarco(CelX,CelY,CelWidth,CelHeight);
+                        } else if(Cel2[c][r].empty>1){
+                            ctx.fillStyle="rgba(100,100,100,0.2)";
+                            desenhabomba(CelX,CelY,CelWidth,CelHeight);
+                        }
+                        else {ctx.fillStyle = "rgba(170,170,250,0.6)";};
+                        ctx.fill();
+                        
+                        ctx.closePath();
+                    }
+                }
+            }
+            
+            /*esta função é a main function do jogo, corre ao ser executado um disparo. Em primeiro lugar
+            é identificado o jogador que está a jogar presentemente graças a variavel que guarda o turno,
+            depois é recolhido o input das coordenadas do tiro e depois é aplicada numa celula dentro de um
+            dos arrays conforme o jogador que está a disparar. Se o tiro acertar numa celula que não está vazia
+            ou seja que tem um barco, esse barco é eliminado ao tornarmos a celula vazia, e  retiramos um barco do
+            respectivo jogador. Se não acertar em nada o jogador que disparou perde 10 pontos e mudamos o turno para o
+            adversário na mesma. Conforme o turno do jogador desenhamos o tabuleiro respectivo utilizado os 2 tabuleiro()
+             Aqui tambem estão as condições de vitória, quer seja pelos pontos chegarem a zero
+            ou pela perda total dos barcos e um reset dos valores de input apos cada interacção
+            No fim acabei introduzindo tambem uma imagem para o tiro falhado e as condições para não
+            podermos dispara para o mesmo sitio duas vezes.*/
+            function disparar(){
+                    if(turno==1){
+                     var guessX = document.getElementById("col").value;
+                     var guessY = document.getElementById("row").value;
+                     guessX=parseInt(guessX);
+                     guessY=parseInt(guessY);
+                     if( Cel2[ guessX][guessY].empty==0){
+                         alert("BOA jogador "+turno+" acertou num dos barcos");
+                         Cel2[ guessX][guessY].empty=1;
+                         barcos--;
+                         if(barcos<1){
+                             alert("O jogador "+turno+" Ganhou!");
+                             location.reload(); }
+                         turno=2;
+                         bcolocados2=0;
+                         limpar();
+                        colocaBarcos();
+                         draw2();
+                     }else if( Cel2[ guessX][guessY].empty==2){
+                         alert("Ja disparou para essa coordenada!");
+                         document.getElementById("col").value=0;
+                         document.getElementById("row").value=0;
+                        return;
+                     }
+                     else{
+                         Cel2[ guessX][guessY].empty=2;
+                         jog1-=10;
+                         document.getElementById("player1").textContent=jog1
+                         turno=2;
+                         bcolocados2=0;
+                         limpar();
+                         colocaBarcos();
+                         draw2();
+                     }
+
+                }else if(turno==2){
+                     var guessX = document.getElementById("col").value;
+                     var guessY = document.getElementById("row").value;
+                     guessX=parseInt(guessX);
+                     guessY=parseInt(guessY);
+                     if( Cel[ guessX][guessY].empty==0){
+                         alert("BOA jogador "+turno+" acertou num dos barcos");
+                         Cel[ guessX][guessY].empty=1;
+                         barcos2--;
+                         if(barcos2<1){
+                             alert("O jogador "+turno+" Ganhou!");
+                             location.reload(); }
+                         turno=1;
+                         bcolocados=0;
+                         limpar2();
+                         colocaBarcos();
+                         draw1();
+                     }else if( Cel[guessX][guessY].empty==2){
+                         alert("Ja disparou para essa coordenada!");
+                         document.getElementById("col").value=0;
+                         document.getElementById("row").value=0;
+                        return;
+                     }else if(Cel[ guessX][guessY].empty==1){;
+                         Cel[guessX][guessY].empty=2;
+                         jog2-=10;
+                         document.getElementById("player2").textContent=jog2
+                         turno=1;
+                         bcolocados=0;
+                         limpar2();
+                         colocaBarcos();
+                         draw1();
+                     }
+                }
+                document.getElementById("col").value=0;
+                document.getElementById("row").value=0;
+                if(jog1<10 || jog2<10){
+                    alert("O jogador "+turno+" Ganhou!");
+                    location.reload(); 
+                }
+            
+            console.log("Array 1 ",Cel);
+            console.log("Array 2",Cel2);
+            }
+
+            /* estas duas functions servem para limpar e logo de seguida desenhar os tabuleiros dos 
+            respectivos jogadores, são utilizadas em jogar() para ir alternando entre os tabuleiros
+            dos 2 jogadores*/
+            function draw1(){
+            ctx.clearRect(0, 0, 420, 420);
+            tabuleiro();
+            }
+
+            function draw2(){
+            ctx.clearRect(0, 0, 420, 420);
+            tabuleiro2();
+            }
+
+
+            //iniciamos o documento ao popular os arrays com celulas
+            popular();
+            // decidir quais celulas contem barcos
+            colocaBarcos();
+            //desenhamos o tabuleiro do jogador que começa
+            draw1();
+                
+
+         
+            </script>
+    </body>
+    </html>
